@@ -5,10 +5,10 @@ from netguard.parser.decode import PacketEvent
 
 def canonical_flow_key(src: Optional[str], dst: Optional[str], sport: Optional[int], dport: Optional[int], proto: str) -> Tuple:
     """
-    Normalizes a 5-tuple so packets travelling in either direction map to the same key.
+    Normalizes a 5-tuple so packets travelling in either direction map to the identical key.
     """
-    ep1 = (src or "", sport or 0)
-    ep2 = (dst or "", dport or 0)
+    ep1 = (src or "", sport if sport is not None else 0)
+    ep2 = (dst or "", dport if dport is not None else 0)
     if ep1 <= ep2:
         return (ep1, ep2, proto)
     return (ep2, ep1, proto)
@@ -45,7 +45,11 @@ class Flow:
         return max(0.0, self.last_seen_ts - self.start_ts)
 
     def is_forward(self, ev: PacketEvent) -> bool:
-        return ev.src == self.initiator_ip and (ev.sport == self.initiator_port or self.initiator_port == 0)
+        if ev.src == self.initiator_ip:
+            if self.initiator_port is not None and ev.sport is not None:
+                return ev.sport == self.initiator_port
+            return True
+        return False
 
     def update(self, ev: PacketEvent) -> None:
         self.last_seen_ts = max(self.last_seen_ts, ev.ts)
@@ -62,12 +66,12 @@ class Flow:
             self._update_tcp_state(ev.flags, forward)
 
     def _update_tcp_state(self, flags: str, forward: bool) -> None:
-        # Reset flag immediately closes flow
+        # Reset immediately flags connection as RESET
         if "R" in flags:
             self.tcp_state = "RESET"
             return
 
-        # Check FIN flags
+        # FIN processing
         if "F" in flags:
             if forward:
                 self.fin_forward = True
@@ -84,6 +88,9 @@ class Flow:
         if self.tcp_state == "NONE":
             if "S" in flags and "A" not in flags:
                 self.tcp_state = "SYN_SENT"
+            elif "A" in flags:
+                # Flow observed mid-stream
+                self.tcp_state = "ESTABLISHED"
         elif self.tcp_state == "SYN_SENT":
             if "S" in flags and "A" in flags and not forward:
                 self.tcp_state = "SYN_RECEIVED"

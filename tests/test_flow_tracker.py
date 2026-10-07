@@ -9,6 +9,12 @@ def test_canonical_flow_key_bidirectional():
     assert key1 == key2
 
 
+def test_canonical_flow_key_portless():
+    key1 = canonical_flow_key("192.168.1.10", "10.0.0.1", None, None, "ICMP")
+    key2 = canonical_flow_key("10.0.0.1", "192.168.1.10", None, None, "ICMP")
+    assert key1 == key2
+
+
 def test_flow_packet_and_byte_counters():
     tracker = FlowTracker()
     
@@ -66,6 +72,14 @@ def test_tcp_state_machine_handshake_and_close():
     assert f.tcp_state == "CLOSED"
 
 
+def test_tcp_midstream_connection():
+    tracker = FlowTracker()
+    # Packet arrives with ACK without seeing initial SYN
+    data_pkt = PacketEvent(ts=50.0, src="192.168.1.10", dst="10.0.0.1", proto="TCP", sport=4567, dport=443, flags="PA", size=200)
+    flow = tracker.process(data_pkt)
+    assert flow.tcp_state == "ESTABLISHED"
+
+
 def test_tcp_reset_handling():
     tracker = FlowTracker()
     syn = PacketEvent(ts=1.0, src="192.168.1.5", dst="10.0.0.1", proto="TCP", sport=2001, dport=80, flags="S", size=60)
@@ -74,6 +88,22 @@ def test_tcp_reset_handling():
     rst = PacketEvent(ts=1.1, src="10.0.0.1", dst="192.168.1.5", proto="TCP", sport=80, dport=2001, flags="R", size=40)
     f = tracker.process(rst)
     assert f.tcp_state == "RESET"
+
+
+def test_icmp_flow_tracking():
+    tracker = FlowTracker()
+    ping_req = PacketEvent(ts=10.0, src="10.0.0.5", dst="10.0.0.1", proto="ICMP", size=84)
+    flow = tracker.process(ping_req)
+    assert flow.proto == "ICMP"
+    assert flow.packets_forward == 1
+    assert flow.packets_reverse == 0
+
+    ping_reply = PacketEvent(ts=10.02, src="10.0.0.1", dst="10.0.0.5", proto="ICMP", size=84)
+    flow2 = tracker.process(ping_reply)
+    assert flow2 is flow
+    assert flow.packets_forward == 1
+    assert flow.packets_reverse == 1
+    assert flow.total_packets == 2
 
 
 def test_flow_idle_eviction():
