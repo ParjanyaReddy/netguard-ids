@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  victim:
+    image: nginx:alpine
+    container_name: netguard-victim
+    networks:
+      lab-network:
+        ipv4_address: 172.28.0.10
+    ports:
+      - "8080:80"
+
+  attacker:
+    image: alpine:latest
+    container_name: netguard-attacker
+    command: >
+      sh -c "apk add --no-cache nmap hping3 curl bind-tools bash &&
+             tail -f /dev/null"
+    networks:
+      lab-network:
+        ipv4_address: 172.28.0.20
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+  sensor:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: netguard-sensor
+    networks:
+      lab-network:
+        ipv4_address: 172.28.0.30
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+
+networks:
+  lab-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
