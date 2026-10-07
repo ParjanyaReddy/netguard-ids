@@ -58,7 +58,7 @@ class AlertStore:
 
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS flows_summary (
-                        flow_key TEXT NOT NULL,
+                        flow_key TEXT PRIMARY KEY,
                         proto TEXT NOT NULL,
                         src TEXT,
                         dst TEXT,
@@ -200,7 +200,7 @@ class AlertStore:
                     for f in flows
                 ]
                 cursor.executemany("""
-                    INSERT INTO flows_summary (
+                    INSERT OR REPLACE INTO flows_summary (
                         flow_key, proto, src, dst, sport, dport, start_ts, last_seen_ts, total_packets, total_bytes, tcp_state
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, records)

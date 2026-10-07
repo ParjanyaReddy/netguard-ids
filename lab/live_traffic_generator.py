@@ -40,6 +40,8 @@ def run_live_generator(db_path: str = "netguard.db", interval: float = 3.0):
     ]
 
     cycle = 0
+    minute_accumulator = {}
+
     while True:
         cycle += 1
         current_time = time.time()
@@ -60,19 +62,47 @@ def run_live_generator(db_path: str = "netguard.db", interval: float = 3.0):
         # Sort batch by timestamp
         batch.sort(key=lambda item: item[0].ts)
 
+        m_ts = int(current_time // 60) * 60
+        if m_ts not in minute_accumulator:
+            minute_accumulator[m_ts] = {
+                "packets": 0, "bytes": 0, "alerts": 0,
+                "TCP": 0, "UDP": 0, "ARP": 0, "OTHER": 0
+            }
+        bucket = minute_accumulator[m_ts]
+
         # Process packets through IDS engine
+        emitted_count = 0
         for ev, _ in batch:
             tracker.process(ev)
             raw_alerts = engine.process(ev)
             emitted = manager.process(raw_alerts)
             if emitted:
                 store.save_alerts(emitted)
+                emitted_count += len(emitted)
+
+            bucket["packets"] += 1
+            bucket["bytes"] += ev.size
+            proto = ev.proto if ev.proto in ("TCP", "UDP", "ARP") else "OTHER"
+            bucket[proto] += 1
+
+        bucket["alerts"] += emitted_count
 
         # Update flows and minute stats
         store.save_flows(list(tracker.flows.values()))
+        store.record_minute_stats(
+            minute_ts=float(m_ts),
+            total_packets=bucket["packets"],
+            total_bytes=bucket["bytes"],
+            alerts_count=bucket["alerts"],
+            breakdown={"TCP": bucket["TCP"], "UDP": bucket["UDP"], "ARP": bucket["ARP"], "OTHER": bucket["OTHER"]}
+        )
 
         # Evict idle flows past 60s
         tracker.evict_idle(current_ts=current_time)
+
+        top_talkers = store.get_top_talkers(limit=4)
+        talker_summary = ", ".join([f"{t['ip']} ({t['bytes']}B)" for t in top_talkers])
+        print(f"[{time.strftime('%X')}] Active Top Talkers >> {talker_summary}")
 
         time.sleep(interval)
 

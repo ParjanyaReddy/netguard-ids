@@ -20,36 +20,56 @@ def generate_benign_traffic(base_ts: float = 100.0, count: int = 50) -> List[Tup
     mac_client = "00:11:22:33:44:01"
     mac_server = "00:11:22:33:44:02"
 
+    ip_to_mac_map = {
+        "172.28.0.50": "00:11:22:33:44:50",
+        "172.28.0.55": "00:11:22:33:44:55",
+        "172.28.0.60": "00:11:22:33:44:60",
+        "172.28.0.65": "00:11:22:33:44:65",
+        "172.28.0.70": "00:11:22:33:44:70",
+        "172.28.0.75": "00:11:22:33:44:75",
+        "172.28.0.80": "00:11:22:33:44:80",
+        "172.28.0.85": "00:11:22:33:44:85",
+    }
+    client_ips = list(ip_to_mac_map.keys())
+
     for i in range(count):
-        ts = base_ts + (i * 0.2)
+        ts = base_ts + (i * 0.1)
+        client_ip = random.choice(client_ips)
+        mac_client = ip_to_mac_map[client_ip]
         choice = i % 3
 
         if choice == 0:
-            # Normal HTTP session handshake
+            # Normal HTTP session with dynamic payload transfer
             sport = 49152 + (i % 1000)
-            syn = Ether(src=mac_client, dst=mac_server) / IP(src="172.28.0.20", dst="172.28.0.10") / TCP(sport=sport, dport=80, flags="S")
+            syn = Ether(src=mac_client, dst=mac_server) / IP(src=client_ip, dst="172.28.0.10") / TCP(sport=sport, dport=80, flags="S")
             syn.time = ts
             events.append((decode(syn), "benign"))
 
-            syn_ack = Ether(src=mac_server, dst=mac_client) / IP(src="172.28.0.10", dst="172.28.0.20") / TCP(sport=80, dport=sport, flags="SA")
+            syn_ack = Ether(src=mac_server, dst=mac_client) / IP(src="172.28.0.10", dst=client_ip) / TCP(sport=80, dport=sport, flags="SA")
             syn_ack.time = ts + 0.01
             events.append((decode(syn_ack), "benign"))
 
-            ack = Ether(src=mac_client, dst=mac_server) / IP(src="172.28.0.20", dst="172.28.0.10") / TCP(sport=sport, dport=80, flags="A")
+            ack = Ether(src=mac_client, dst=mac_server) / IP(src=client_ip, dst="172.28.0.10") / TCP(sport=sport, dport=80, flags="A")
             ack.time = ts + 0.02
             events.append((decode(ack), "benign"))
 
+            # Data payload packet
+            data_size = random.randint(300, 4500)
+            data_pkt = Ether(src=mac_client, dst=mac_server) / IP(src=client_ip, dst="172.28.0.10") / TCP(sport=sport, dport=80, flags="PA") / ("X" * data_size)
+            data_pkt.time = ts + 0.03
+            events.append((decode(data_pkt), "benign"))
+
         elif choice == 1:
-            # Normal DNS query
-            qnames = ["www.google.com", "api.github.com", "cdn.cloudflare.net", "news.ycombinator.com"]
-            qname = qnames[i % len(qnames)]
-            dns_pkt = Ether(src=mac_client, dst=mac_server) / IP(src="172.28.0.20", dst="8.8.8.8") / UDP(sport=53000 + i, dport=53) / DNS(rd=1, qd=DNSQR(qname=qname, qtype=1))
+            # Normal DNS query from diverse clients
+            qnames = ["www.google.com", "api.github.com", "cdn.cloudflare.net", "news.ycombinator.com", "slack.com", "zoom.us"]
+            qname = random.choice(qnames)
+            dns_pkt = Ether(src=mac_client, dst=mac_server) / IP(src=client_ip, dst="8.8.8.8") / UDP(sport=53000 + (i % 5000), dport=53) / DNS(rd=1, qd=DNSQR(qname=qname, qtype=1))
             dns_pkt.time = ts
             events.append((decode(dns_pkt), "benign"))
 
         else:
-            # Normal ARP lookup
-            arp_pkt = Ether(src=mac_client, dst="ff:ff:ff:ff:ff:ff") / ARP(op=1, psrc="172.28.0.20", pdst="172.28.0.1", hwsrc=mac_client)
+            # Normal ARP lookup from diverse clients with their permanent MAC
+            arp_pkt = Ether(src=mac_client, dst="ff:ff:ff:ff:ff:ff") / ARP(op=1, psrc=client_ip, pdst="172.28.0.1", hwsrc=mac_client)
             arp_pkt.time = ts
             events.append((decode(arp_pkt), "benign"))
 
@@ -61,7 +81,9 @@ def generate_port_scan_traffic(base_ts: float = 200.0, num_ports: int = 30) -> L
     Simulates vertical SYN port scan from attacker against victim.
     """
     events = []
-    attacker_ip = "172.28.0.20"
+    # Rotate between multiple external or internal compromised hosts
+    attackers = ["172.28.0.20", "172.28.0.21", "172.28.0.22", "172.28.0.99"]
+    attacker_ip = random.choice(attackers)
     victim_ip = "172.28.0.10"
     mac = "00:11:22:33:44:aa"
 
@@ -95,7 +117,8 @@ def generate_dns_tunnel_traffic(base_ts: float = 400.0, count: int = 15) -> List
     Simulates DNS tunneling with high-entropy payload chunks in subdomains.
     """
     events = []
-    attacker_ip = "172.28.0.20"
+    tunnel_clients = ["172.28.0.20", "172.28.0.45", "172.28.0.88", "172.28.0.105"]
+    attacker_ip = random.choice(tunnel_clients)
 
     for i in range(count):
         # Generate 32 characters of high-entropy hex data
