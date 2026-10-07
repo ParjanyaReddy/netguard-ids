@@ -14,3 +14,4 @@ venv/
 .idea/
 .vscode/
 implementation_plan.md
+pyrightconfig.json
