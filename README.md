@@ -14,6 +14,8 @@ A lightweight Network Traffic Analyzer and Mini Intrusion Detection System (IDS)
   - **SYN Flood Detection**: Tracks half-open connection spikes and abnormal SYN/ACK completion ratios.
   - **DNS Tunneling & Data Exfiltration**: Multi-signal scoring utilizing Shannon entropy calculation, long query labels, TXT/NULL record inspections, and burst rates.
   - **ARP Poisoning Detection**: Active IP-to-MAC conflict detection, MITM detection, and default gateway impersonation alerts.
+- **Alert Deduplication**: Cooldown-based alert manager suppressing repeated alerts from identical sources while logging burst frequency.
+- **SQLite Storage & Analytics**: Thread-safe storage engine persisting security alerts, bidirectional flow summaries, top talker bandwidth metrics, protocol distributions, and rolling time-series statistics.
 
 ## Installation
 ```bash
