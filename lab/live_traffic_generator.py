@@ -6,11 +6,11 @@ import random
 # Ensure root is in path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from netguard.alerts.store import AlertStore
-from netguard.alerts.manager import AlertManager
-from netguard.flow.tracker import FlowTracker
-from netguard.detectors.engine import DetectionEngine
-from lab.attack_simulator import (
+from netguard.alerts.store import AlertStore  # type: ignore
+from netguard.alerts.manager import AlertManager  # type: ignore
+from netguard.flow.tracker import FlowTracker  # type: ignore
+from netguard.detectors.engine import DetectionEngine  # type: ignore
+from lab.attack_simulator import (  # type: ignore
     generate_benign_traffic,
     generate_port_scan_traffic,
     generate_syn_flood_traffic,

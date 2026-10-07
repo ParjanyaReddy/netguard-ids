@@ -4,11 +4,11 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from netguard.alerts.store import AlertStore
-from netguard.alerts.manager import AlertManager
-from netguard.flow.tracker import FlowTracker
-from netguard.detectors.engine import DetectionEngine
-from lab.attack_simulator import generate_full_test_dataset
+from netguard.alerts.store import AlertStore  # type: ignore
+from netguard.alerts.manager import AlertManager  # type: ignore
+from netguard.flow.tracker import FlowTracker  # type: ignore
+from netguard.detectors.engine import DetectionEngine  # type: ignore
+from lab.attack_simulator import generate_full_test_dataset  # type: ignore
 
 def seed_demo_data(db_path: str = "netguard.db"):
     store = AlertStore(db_path)

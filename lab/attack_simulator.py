@@ -8,8 +8,8 @@ from typing import List, Tuple
 # Ensure project root is on sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from scapy.all import Ether, IP, TCP, UDP, DNS, DNSQR, ARP, wrpcap
-from netguard.parser.decode import decode, PacketEvent
+from scapy.all import Ether, IP, TCP, UDP, DNS, DNSQR, ARP, wrpcap  # type: ignore
+from netguard.parser.decode import decode, PacketEvent  # type: ignore
 
 
 def generate_benign_traffic(base_ts: float = 100.0, count: int = 50) -> List[Tuple[PacketEvent, str]]:
