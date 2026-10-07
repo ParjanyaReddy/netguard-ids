@@ -16,11 +16,19 @@ A lightweight Network Traffic Analyzer and Mini Intrusion Detection System (IDS)
   - **ARP Poisoning Detection**: Active IP-to-MAC conflict detection, MITM detection, and default gateway impersonation alerts.
 - **Alert Deduplication**: Cooldown-based alert manager suppressing repeated alerts from identical sources while logging burst frequency.
 - **SQLite Storage & Analytics**: Thread-safe storage engine persisting security alerts, bidirectional flow summaries, top talker bandwidth metrics, protocol distributions, and rolling time-series statistics.
+- **FastAPI REST Backend**: Comprehensive API providing endpoints for alert triage (`/alerts`), host statistics (`/stats/top-talkers`), protocol counts (`/stats/protocols`), and rolling summaries (`/stats/summary`).
+- **Interactive Web Dashboard**: Modern dark-themed dashboard built with Chart.js displaying real-time threat categorization, live event feeds, and top talkers.
 
 ## Installation
 ```bash
 pip install -r requirements.txt
 ```
+
+## Running the Web Dashboard & API
+```bash
+uvicorn netguard.api.main:app --reload --port 8000
+```
+Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ## Running Tests
 ```bash

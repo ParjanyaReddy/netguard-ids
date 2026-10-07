@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="NetGuard IDS - Real-time Network Traffic Analyzer and Intrusion Detection System Dashboard">
+  <title>NetGuard IDS | Network Traffic Analyzer & Mini-IDS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-base: #0a0e17;
+      --bg-surface: #111827;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent-cyan: #06b6d4;
+      --accent-blue: #3b82f6;
+      --critical: #ef4444;
+      --high: #f97316;
+      --medium: #eab308;
+      --low: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.35);
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      font-weight: 500;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #0891b2);
+      border: none;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.15);
+    }
+
+    main {
+      padding: 2rem;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      flex: 1;
+    }
+
+    /* Metric Cards Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(8px);
+      border-radius: 12px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    }
+
+    .metric-title {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    /* Charts Row */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .chart-card {
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-main);
+    }
+
+    .chart-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    /* Live Feed Section */
+    .feed-card {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .feed-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .feed-header h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    select {
+      background: rgba(17, 24, 39, 0.9);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
+    th {
+      color: var(--text-muted);
+      font-weight: 500;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    td {
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .code-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-critical {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .badge-high {
+      background: rgba(249, 115, 22, 0.2);
+      color: #fdba74;
+      border: 1px solid rgba(249, 115, 22, 0.4);
+    }
+
+    .badge-medium {
+      background: rgba(234, 179, 8, 0.2);
+      color: #fde047;
+      border: 1px solid rgba(234, 179, 8, 0.4);
+    }
+
+    .badge-low {
+      background: rgba(16, 185, 129, 0.2);
+      color: #86efac;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+    }
+
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 1.25rem 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div>
+        <h1>NetGuard IDS</h1>
+      </div>
+      <div class="status-badge">
+        <span class="pulse-dot"></span>
+        SENSOR ACTIVE
+      </div>
+    </div>
+    <div class="header-controls">
+      <button id="btn-refresh" class="btn">Refresh Data</button>
+      <label style="font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+        <input type="checkbox" id="auto-refresh" checked> Auto-refresh (3s)
+      </label>
+    </div>
+  </header>
+
+  <main>
+    <!-- Key Metric Counters -->
+    <div class="metrics-grid">
+      <div class="card">
+        <div class="metric-title">Total Alerts</div>
+        <div class="metric-value" id="val-total-alerts" style="color: #60a5fa;">0</div>
+      </div>
+      <div class="card">
+        <div class="metric-title">Critical Threats</div>
+        <div class="metric-value" id="val-critical-threats" style="color: var(--critical);">0</div>
+      </div>
+      <div class="card">
+        <div class="metric-title">High Severity</div>
+        <div class="metric-value" id="val-high-threats" style="color: var(--high);">0</div>
+      </div>
+      <div class="card">
+        <div class="metric-title">Active Top Talkers</div>
+        <div class="metric-value" id="val-top-talkers" style="color: var(--accent-cyan);">0</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="card chart-card">
+        <h2>Threats by Classification</h2>
+        <div class="chart-wrapper">
+          <canvas id="threatsChart"></canvas>
+        </div>
+      </div>
+      <div class="card chart-card">
+        <h2>Protocol Distribution</h2>
+        <div class="chart-wrapper">
+          <canvas id="protocolChart"></canvas>
+        </div>
+      </div>
+      <div class="card chart-card" style="grid-column: 1 / -1;">
+        <h2>Top Talkers (Bandwidth in Bytes)</h2>
+        <div class="chart-wrapper" style="min-height: 220px;">
+          <canvas id="talkersChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Alerts Feed -->
+    <div class="card feed-card">
+      <div class="feed-header">
+        <h2>Live Security Event Feed</h2>
+        <div class="filter-group">
+          <select id="filter-type">
+            <option value="">All Attack Types</option>
+            <option value="port_scan">Port Scan</option>
+            <option value="syn_flood">SYN Flood</option>
+            <option value="dns_tunnel">DNS Tunneling</option>
+            <option value="arp_spoof">ARP Spoofing</option>
+          </select>
+          <select id="filter-severity">
+            <option value="">All Severities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Type</th>
+              <th>Severity</th>
+              <th>Source</th>
+              <th>Target</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody id="alerts-tbody">
+            <tr>
+              <td colspan="6" class="empty-state">Loading security events...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    NetGuard IDS &bull; Packet Capture &bull; Stateful Flow Tracking &bull; Threat Detection Engine
+  </footer>
+
+  <script>
+    let threatsChart = null;
+    let protocolChart = null;
+    let talkersChart = null;
+
+    function initCharts() {
+      const tcCtx = document.getElementById('threatsChart').getContext('2d');
+      threatsChart = new Chart(tcCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Port Scan', 'SYN Flood', 'DNS Tunnel', 'ARP Spoof'],
+          datasets: [{
+            label: 'Threat Count',
+            data: [0, 0, 0, 0],
+            backgroundColor: ['#3b82f6', '#ef4444', '#a855f7', '#f59e0b'],
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      const pcCtx = document.getElementById('protocolChart').getContext('2d');
+      protocolChart = new Chart(pcCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['TCP', 'UDP', 'ARP', 'ICMP'],
+          datasets: [{
+            data: [1, 1, 1, 1],
+            backgroundColor: ['#06b6d4', '#3b82f6', '#10b981', '#f59e0b'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'right', labels: { color: '#9ca3af' } } }
+        }
+      });
+
+      const tkCtx = document.getElementById('talkersChart').getContext('2d');
+      talkersChart = new Chart(tkCtx, {
+        type: 'bar',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Bytes Transmitted',
+            data: [],
+            backgroundColor: '#06b6d4',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    async function fetchData() {
+      try {
+        const typeFilter = document.getElementById('filter-type').value;
+        const sevFilter = document.getElementById('filter-severity').value;
+
+        let alertsUrl = '/alerts?limit=50';
+        if (typeFilter) alertsUrl += `&type=${encodeURIComponent(typeFilter)}`;
+        if (sevFilter) alertsUrl += `&severity=${encodeURIComponent(sevFilter)}`;
+
+        const [alertsRes, summaryRes, protocolsRes, talkersRes] = await Promise.all([
+          fetch(alertsUrl),
+          fetch('/stats/summary'),
+          fetch('/stats/protocols'),
+          fetch('/stats/top-talkers?limit=6')
+        ]);
+
+        const alerts = await alertsRes.json();
+        const summary = await summaryRes.json();
+        const protocols = await protocolsRes.json();
+        const talkers = await talkersRes.json();
+
+        // Update metric counters
+        document.getElementById('val-total-alerts').textContent = summary.total_alerts || 0;
+        document.getElementById('val-critical-threats').textContent = (summary.severities && summary.severities.critical) || 0;
+        document.getElementById('val-high-threats').textContent = (summary.severities && summary.severities.high) || 0;
+        document.getElementById('val-top-talkers').textContent = (talkers && talkers.length) || 0;
+
+        // Update threats chart
+        const threatCounts = [
+          (summary.threats_by_type && summary.threats_by_type.port_scan) || 0,
+          (summary.threats_by_type && summary.threats_by_type.syn_flood) || 0,
+          (summary.threats_by_type && summary.threats_by_type.dns_tunnel) || 0,
+          (summary.threats_by_type && summary.threats_by_type.arp_spoof) || 0
+        ];
+        threatsChart.data.datasets[0].data = threatCounts;
+        threatsChart.update();
+
+        // Update protocols chart
+        const protoKeys = Object.keys(protocols);
+        if (protoKeys.length > 0) {
+          protocolChart.data.labels = protoKeys;
+          protocolChart.data.datasets[0].data = Object.values(protocols);
+          protocolChart.update();
+        }
+
+        // Update top talkers
+        if (talkers && talkers.length > 0) {
+          talkersChart.data.labels = talkers.map(t => t.ip);
+          talkersChart.data.datasets[0].data = talkers.map(t => t.bytes);
+          talkersChart.update();
+        }
+
+        // Render Alerts Table
+        const tbody = document.getElementById('alerts-tbody');
+        if (!alerts || alerts.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No alerts recorded for current filters. System clear.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = alerts.map(a => {
+          const date = new Date(a.ts * 1000).toLocaleTimeString();
+          const sevClass = `badge-${a.severity.toLowerCase()}`;
+          return `
+            <tr>
+              <td class="code-text" style="color: var(--text-muted);">${date}</td>
+              <td><strong>${a.alert_type}</strong></td>
+              <td><span class="badge ${sevClass}">${a.severity}</span></td>
+              <td class="code-text">${a.src || '&mdash;'}</td>
+              <td class="code-text">${a.dst || '&mdash;'}</td>
+              <td>${a.description}</td>
+            </tr>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initCharts();
+      fetchData();
+
+      document.getElementById('btn-refresh').addEventListener('click', fetchData);
+      document.getElementById('filter-type').addEventListener('change', fetchData);
+      document.getElementById('filter-severity').addEventListener('change', fetchData);
+
+      setInterval(() => {
+        if (document.getElementById('auto-refresh').checked) {
+          fetchData();
+        }
+      }, 3000);
+    });
+  </script>
+</body>
+</html>

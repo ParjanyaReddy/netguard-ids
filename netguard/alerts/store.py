@@ -245,7 +245,7 @@ class AlertStore:
                 rows = cursor.fetchall()
                 return {r["proto"]: r["count"] for r in rows}
             finally:
-                conn.close()
+                self._close_connection(conn)
 
     def record_minute_stats(
         self,
