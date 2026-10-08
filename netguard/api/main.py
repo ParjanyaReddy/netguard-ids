@@ -72,26 +72,15 @@ def create_app(store: Optional[AlertStore] = None, dashboard_path: Optional[str]
 
     @app.get("/stats/summary")
     def get_summary() -> Dict[str, Any]:
-        all_alerts = alert_store.get_alerts(limit=1000)
+        alert_stats = alert_store.get_alerts_summary()
         top_talkers = alert_store.get_top_talkers(limit=5)
         protocols = alert_store.get_protocol_distribution()
-
-        severities = {"critical": 0, "high": 0, "medium": 0, "low": 0}
-        types_breakdown: Dict[str, int] = {}
-
-        for a in all_alerts:
-            sev = a.get("severity", "low").lower()
-            if sev in severities:
-                severities[sev] += 1
-            atype = a.get("alert_type", "unknown")
-            types_breakdown[atype] = types_breakdown.get(atype, 0) + 1
-
         total_bytes = sum(t.get("bytes", 0) for t in top_talkers)
 
         return {
-            "total_alerts": len(all_alerts),
-            "severities": severities,
-            "threats_by_type": types_breakdown,
+            "total_alerts": alert_stats["total_alerts"],
+            "severities": alert_stats["severities"],
+            "threats_by_type": alert_stats["threats_by_type"],
             "total_bytes_tracked": total_bytes,
             "active_protocols_count": len(protocols),
             "top_talkers_count": len(top_talkers)

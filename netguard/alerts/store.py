@@ -173,6 +173,36 @@ class AlertStore:
             finally:
                 self._close_connection(conn)
 
+    def get_alerts_summary(self) -> Dict[str, Any]:
+        """
+        Calculates aggregate alert counts by severity and threat type directly in SQL.
+        Eliminates query limits so total counts are 100% accurate.
+        """
+        with self._lock:
+            conn = self._get_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM alerts")
+                total_alerts = cursor.fetchone()[0]
+
+                cursor.execute("SELECT severity, COUNT(*) FROM alerts GROUP BY severity")
+                severities = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+                for row in cursor.fetchall():
+                    s = (row["severity"] or "low").lower()
+                    if s in severities:
+                        severities[s] = row[1]
+
+                cursor.execute("SELECT alert_type, COUNT(*) FROM alerts GROUP BY alert_type")
+                types_breakdown = {row["alert_type"]: row[1] for row in cursor.fetchall()}
+
+                return {
+                    "total_alerts": total_alerts,
+                    "severities": severities,
+                    "threats_by_type": types_breakdown
+                }
+            finally:
+                self._close_connection(conn)
+
     def save_flow(self, flow: Flow) -> None:
         self.save_flows([flow])
 
