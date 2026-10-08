@@ -556,20 +556,26 @@
         threatsChart.data.datasets[0].data = threatCounts;
         threatsChart.update();
 
-        // Update protocols chart
-        const protoKeys = Object.keys(protocols);
+        // Update protocols chart (clear placeholder when no traffic exists)
+        const protoKeys = Object.keys(protocols || {});
         if (protoKeys.length > 0) {
           protocolChart.data.labels = protoKeys;
           protocolChart.data.datasets[0].data = Object.values(protocols);
-          protocolChart.update();
+        } else {
+          protocolChart.data.labels = ['No Active Traffic'];
+          protocolChart.data.datasets[0].data = [0];
         }
+        protocolChart.update();
 
-        // Update top talkers
+        // Update top talkers (dynamically clear if no flows recorded)
         if (talkers && talkers.length > 0) {
           talkersChart.data.labels = talkers.map(t => t.ip);
           talkersChart.data.datasets[0].data = talkers.map(t => t.bytes);
-          talkersChart.update();
+        } else {
+          talkersChart.data.labels = [];
+          talkersChart.data.datasets[0].data = [];
         }
+        talkersChart.update();
 
         // Render Alerts Table
         const tbody = document.getElementById('alerts-tbody');
@@ -579,16 +585,17 @@
         }
 
         tbody.innerHTML = alerts.map(a => {
-          const date = new Date(a.ts * 1000).toLocaleTimeString();
-          const sevClass = `badge-${a.severity.toLowerCase()}`;
+          const date = a.ts ? new Date(a.ts * 1000).toLocaleTimeString() : 'Recent';
+          const sevStr = (a.severity || 'low').toLowerCase();
+          const sevClass = `badge-${sevStr}`;
           return `
             <tr>
               <td class="code-text" style="color: var(--text-muted);">${date}</td>
               <td><strong>${a.alert_type}</strong></td>
-              <td><span class="badge ${sevClass}">${a.severity}</span></td>
+              <td><span class="badge ${sevClass}">${a.severity || 'LOW'}</span></td>
               <td class="code-text">${a.src || '&mdash;'}</td>
               <td class="code-text">${a.dst || '&mdash;'}</td>
-              <td>${a.description}</td>
+              <td>${a.description || 'Threat activity detected.'}</td>
             </tr>
           `;
         }).join('');
