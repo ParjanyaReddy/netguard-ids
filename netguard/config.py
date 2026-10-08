@@ -16,6 +16,9 @@ class NetGuardConfig:
     # Detector thresholds
     port_scan_window: float = 10.0
     port_scan_threshold: int = 15
+    port_scan_enable_ewma: bool = True
+    port_scan_slow_threshold: int = 20
+    port_scan_slow_window: float = 300.0
     syn_flood_window: float = 5.0
     syn_flood_threshold: int = 40
     syn_flood_incomplete_ratio: float = 0.8
