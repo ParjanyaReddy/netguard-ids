@@ -40,11 +40,13 @@ NetGuard inspects network frames across layers L2–L7, maintains stateful bidir
 - **Bidirectional 5-Tuple Flow Tracking**: Maps forward and reverse traffic to a canonical flow key, tracking durations, byte/packet metrics, and TCP handshake transitions (`SYN_SENT`, `SYN_RECEIVED`, `ESTABLISHED`, `FIN_WAIT`, `CLOSED`, `RESET`).
 - **Configurable Idle Eviction**: Automatic garbage collection of expired connections.
 - **Intrusion Detection Modules**:
-  - **Port Scan Detection**: Sliding window tracking distinguishing vertical port scans and horizontal port sweeps.
+  - **Port Scan Detection**: Sliding window tracking distinguishing vertical port scans and horizontal sweeps, augmented with **Exponentially Weighted Moving Average (EWMA)** for "low-and-slow" stealth reconnaissance detection.
+  - **Bounded-Memory Profiling (Count-Min Sketch)**: Uses a 2D probabilistic counter matrix with Conservative Update (CMS-CU) ensuring a strictly bounded memory footprint (< 35 KB) immune to state-exhaustion DoS attacks.
   - **SYN Flood Detection**: Half-open connection spike monitoring and incomplete handshake ratio tracking.
   - **DNS Tunneling & Data Exfiltration**: Multi-signal heuristic combining Shannon entropy (>3.5), long query labels, TXT/NULL record inspections, and burst rates.
   - **ARP Poisoning Detection**: Active IP-to-MAC conflict detection, MITM detection, and default gateway impersonation alerts.
 - **Alert Deduplication Manager**: Cooldown-based suppression of alert storms with frequency logging.
+- **PCAP Regression Test Corpus**: Reproducible suite of labeled PCAPs (`tests/pcaps/`) for offline regression testing.
 - **SQLite Storage & Analytics**: Persistence for alerts, flow summaries, top talker bandwidth metrics, protocol distributions, and rolling time-series statistics.
 - **FastAPI REST Service**: REST endpoints for alert triage (`/alerts`), host statistics (`/stats/top-talkers`), protocol counts (`/stats/protocols`), and rolling summaries (`/stats/summary`).
 - **Interactive Web Dashboard**: Modern dark-themed dashboard built with Chart.js displaying real-time threat categorization, live event feeds, and top talkers.
@@ -58,7 +60,7 @@ Evaluated on labeled traffic datasets containing mixed benign traffic and multi-
 
 | Threat Type | True Positives | False Positives | Precision | Recall | F1 Score | Detection Technique |
 |---|---|---|---|---|---|---|
-| **Port Scan** | 1 burst | 0 | 100.0% | 100.0% | 1.000 | Sliding window target aggregation |
+| **Port Scan** | 1 burst | 0 | 100.0% | 100.0% | 1.000 | Sliding window target aggregation + EWMA stealth tracking + CMS-CU |
 | **SYN Flood** | 1 burst | 0 | 100.0% | 100.0% | 1.000 | Half-open thresholding & incomplete handshake ratio |
 | **DNS Tunneling** | 15 bursts | 0 | 100.0% | 100.0% | 1.000 | Shannon entropy (>3.5), TXT/NULL records |
 | **ARP Spoofing** | 1 burst | 0 | 100.0% | 100.0% | 1.000 | Dynamic IP-to-MAC state tracking & gateway conflict |

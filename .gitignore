@@ -3,6 +3,7 @@ __pycache__/
 *$py.class
 *.pcap
 *.pcapng
+!tests/pcaps/*.pcap
 .pytest_cache/
 .coverage
 htmlcov/
